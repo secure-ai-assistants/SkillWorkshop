@@ -1,33 +1,38 @@
 # Part One: Get to Grips with Skills and ASK
 ## Create the skill and provision resources 
-* Go to the Alexa Skills Kit at https://developer.amazon.com/alexa/console/ask and log in with an Amazon account
+Because the underlying technical implementation of an Alexa skill is quite complicated, we're going to start with a template from Amazon and use this to explore how skills work and tinker with some of the functionality that's available. In this first part of the hands-on exercise, we're going to clone the skill template that Amazon provides, set up the cloud resources we need in order to run the skill, and make sure that all the components are plugged into each other.
 
-* Select "create skill" and enter the name that people will call your skill by (this is what you’ll ask Alexa for when you test the skill)
+* Go to the Alexa Skills Kit at https://developer.amazon.com/alexa/console/ask and log in with an Amazon account.
 
-* Choose the custom skill model and "Alexa-Hosted (Python)" resources, then click “create skill” and choose "High-Low Game Skill". We’ll use this as a template and add some new features to it
+* Select "create skill" and enter the name that people will call your skill by (this is what you’ll ask Alexa for when you test the skill).
 
-ASK will now create a basic conversation model for the skill and provision a Lambda function for your skill. This may take a few minutes. It should then place you into the ASK development environment. Time to get hacking!
+* Choose the custom skill model and "Alexa-Hosted (Python)" resources, then click “create skill” and choose "High-Low Game Skill". We’ll use this as a template and add some new features to it.
 
-## Test the Skill and See What it Does 
-* Go to the “Test” tab at the top of the development environment. You will need to grant access to your microphone when prompted if you want to interact with the skill via speech
-  * (you can also type your commands to Alexa - if you recall the request lifecycle, this just skips out the recording and transcription steps and feeds your typed request straight into the natural language processing model)
+ASK will now create a basic conversation model for the skill and provision a Lambda function for your skill. This may take a few minutes. The Lambda function will be hosted and run on AWS, but you can edit and deploy it from within ASK so you don't need to switch between the two. When the provisioning is done it should place you into the ASK development environment. Time to get hacking!
 
-This part of ASK simulates using an Alexa device (like the Echo) or using Alexa on your phone. A key benefit is that you can see the request and response objects at each stage of the conversation. This can help you to understand what your skill is doing and diagnose any problems. 
+## Test the Skill and See What it Does
+Okay, so we cloned this skill but what does it actually do? We'll have a look at the code soon, but for now let's just run it with the Alexa simulator and see what happens. You'll need to use this tool later on to test and debug the changes you make to your skill.
 
-* Start the skill by asking something like "open [skill name]". With this and all of the other prompts you can experiment with different phrasings to see how Alexa interprets them. Note that you don't need to prefix commands to the simulator with "Alexa" - everything here is obviously for Alexa!
+* Go to the “Test” tab at the top of the development environment. You will need to grant access to your microphone when prompted if you want to interact with the skill via speech. You can also type your commands to Alexa - if you recall the request lifecycle, this just skips out the recording and transcription steps and feeds your typed request straight into the natural language processing model.
 
-Play the game for as long as you want, making note of the choices it offers you and how it responds to your input. You can see the JSON data that is being sent between ASK and AWS Lambda in the boxes on the right hand side of the screen.  
+This part of ASK simulates using an Alexa device like the Echo, including any visual display elements that might be included in a response. It also shows you the JSON data that's being sent back and forth when you use Alexa. When you build Alexa responses later in the workshop, these will be translated directly into these JSON objects that you see now.
+
+* Try out some of the commands you've been using with Alexa over the past few weeks to get an idea of how the simulator works. You can see the JSON data that is being sent between ASK and AWS Lambda in the boxes on the main part of the screen. Note that you don't need to prefix commands to the simulator with "Alexa" - everything here is obviously for Alexa!
+
+* Start your skill by asking something like "open [skill name]". With this and all of the other prompts you can experiment with different phrasings to see how Alexa interprets them. Play the game for as long as you want, making note of the choices it offers you and how it responds to your input.
+ 
+You could also test the skill using Alexa on your phone–it will automatically appear under "Dev" in the "Skills and Games" -> "Your Skills" section of the app–but being able to see the JSON request and response objects in the simulator will come in very handy later on. If there's a problem with your skill's code it might not _say_ anything, but you'll still be able to check the response to see what Alexa thinks is happening and (hopefully) diagnose any problems.
 
 ## Get to Know the Skills Kit Interface - Intents, Slots, and Utterances 
-First, we’ll take a look at the conversation model.
+Now th fun begins! We're going to explore the conversation model for the skill. As covered in the lecture, these are formed of three main components: utterances, intents, and slots. Intents define the states your skill can be in; utterances control what users can say to enter these states; and slots allow users to pass additional information to your skill along with an intent (e.g. the number they would like to guess).
 
-* This is found under the “Build” tab (along the top of the screen). On the left hand menu go to "Interaction Model"-> "Intents" 
+* The conversation model can be found under the “Build” tab (along the top of the screen). On the left hand menu go to "Interaction Model"-> "Intents" 
 
-You can see a range of intents here, most of them present by default. The main intent that forms the entry point into the skill when it gets invoked is "Number Guess Intent"
+You can see a range of intents here, and most of them are present by default - every skill will accept the "Help", "Stop", "Cancel", and "NavigateHome" intents. Several others are commonly used by a range of skills and are build into the ASK (here "Yes", "No", and "Fallback"). The main intent that forms the entry point into the skill when it gets invoked is "NumberGuessIntent".
 
-* If you click on this intent you can see some different utterances for it. Saying any of these utterances will send this intent to the skill. Add in a new utterance (e.g. "I choose {number}")
+* If you click on this intent you can see the different utterances that will trigger it. Saying any of these phrases will send this intent to the skill. Add in a new utterance (e.g. "I choose {number}")
 
-You can see more details about this number slot further down the page – it has the type AMAZON.NUMBER (the default way of representing numbers with Alexa) and can have only one value. We need to tell Alexa what kind of information will be in the slot so that it can correctly deduce what intent the user wants (I.e. your skill won’t have to deal with something like “I choose apples”). We can see that this utterance will not prompt Alexa to ask the user for confirmation (you might want to do so before making a purchase, for instance) 
+The NumberGuessIntent has a single slot called "number", and you can see more details about this further down the page – it has the type AMAZON.NUMBER (this is the default way of representing numbers with Alexa) and can have only one value. Alexa needs to know what kind of information will be in the slot so that it can correctly deduce what intent the user wants (i.e. your skill won’t have to deal with something like “how about apples”). This means that such an utterance would be captured instead by the FallbackIntent, which fires whenever the user says something that isn't captured by another intent. We can also see that this utterance will not prompt Alexa to ask the user for confirmation (you might want to do so before making a purchase, for instance) 
     
 ## Get to Know the Skills Kit Interface - the Lambda Function 
 * Switch to the “Code” tab. This will open the code that runs on AWS Lambda. This code is run every time that a user says anything to the skill (I.e. this will run multiple times during a single play of the game) 

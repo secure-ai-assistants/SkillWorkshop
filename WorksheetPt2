@@ -1,0 +1,4 @@
+# Part Two: Modifying the Skill
+We're now going to start modifying the skill to make use of some personal data. If you end up changing code and want a reference to check against, you can find the original source file at https://github.com/alexa-samples/skill-sample-python-highlowgame/blob/master/lambda/py/lambda_function.py
+
+## Adding Some Data Collection – Checking and asking for permissions 

@@ -1,7 +1,7 @@
-# Part Two: Modifying the Skill
+# Part Two: Adding Some Data Collection
 We're now going to start modifying the skill to make use of some personal data. If you end up changing code and want a reference to check against, you can find the original source file at https://github.com/alexa-samples/skill-sample-python-highlowgame/blob/master/lambda/py/lambda_function.py
 
-## Adding Some Data Collection – Checking and asking for permissions 
+## Checking and asking for permissions 
 
 At present the skill doesn't use any user data. We’re going to update it to greet the user by name to make the experience more personal. The first thing we need to do is to tell ASK that our skill might need access to the user's name.
 
@@ -25,7 +25,7 @@ The code that defines the permissions card isn't included in the project by defa
 
 * At the top of the source document add the following line to `import` the permissions consent card: `from ask_sdk_model.ui.ask_for_permissions_consent_card import AskForPermissionsConsentCard`
 * Create a variable to hold your `AskForPermissionsConsentCard`. You'll need to pass in the permission you want to ask for in parentheses (by including extra strings here you could ask for more permissions if you wanted to).
-* Modify your line in LaunchRequest that uses the response builder. Instead of sending a reprompt, we want to send a card, so change the `ask` command into `set_card` and pass in the name of your permissions card variable.
+* Modify your line in LaunchRequest that uses the response builder. Instead of sending a reprompt, we want to send a card, so change the `ask` command into `set_card` and pass in the name of your permissions card variable (a reprompt will cause alexa to say the specified text if the user doesn’t respond after around 8 seconds, although the Alexa simulator doesn't say them as they would get _very_ frustrating when testing your skill).
 
 <details>
   <summary>Sample code if you want something to refer to or check against</summary>
@@ -38,14 +38,59 @@ return handler_input.response_builder.response
 ```
 </details>
 
-Finally we put these together and send back the response. Notice how we can keep adding things to the response builder to create the user experience we want (you can see the use of reprompt at other places in the skill, which will cause alexa to say the specified text if the user doesn’t respond after around 8 seconds). 
+Finally we put these together and send back the response. Notice how we can keep adding things to the response builder to create the user experience we want (you could add a reprompt in addition to the card if you wanted).
 
-Before we test this, we need to make sure we reference the extra code required to specify the permission request card. This goes at the top of the file 
+* Before we test this, we need to make sure we reference the extra code required to specify the permission request card. This goes at the top of the file `from ask_sdk_model.ui.ask_for_permissions_consent_card import AskForPermissionsConsentCard`.
 
-from ask_sdk_model.ui.ask_for_permissions_consent_card import AskForPermissionsConsentCard 
+* Okay! Save and deploy the code, and then open the skill using the Alexa Simulator in the test tab. You might find that you want to keep this open in another browser tab to make it easier to switch back and forth between the simulator and the code. 
 
-Okay! Save and deploy the code, and then open the skill using the Alexa Simulator in the test tab. You might find that you want to keep this open in another browser tab to make it easier to switch back and forth between the simulator and the code. 
+* Run the skill – it should prompt you to give it permissions with speech and a card. You can see the JSON description of the response the skill sent back in the right hand box. This should match the response detailed in the Cloudwatch logs.
 
-Run the skill – it should prompt you to give it permissions with speech and a card. You can see the JSON description of the response the skill sent back in the right hand box. This should match the response detailed in the Cloudwatch logs 
+* You can grant your skill permission in the Alexa app or at https://alexa.amazon.co.uk. Once you do this the skill should function as it did before, as the `if` statement that checks what permissions have been granted will not fire (i.e. the value of `system.user.permissions` will not be `None` - you can see what it is by adding a print(permissions) statement into the skill code. In general you can use print statments to log the value of variables at most stages of your skill's execution.
 
-You can grant your skill permission in the Alexa app or at https://alexa.amazon.co.uk 
+## Accessing Personal Data 
+
+So now the user has given us permission to access their name, but we still don't actually know what this is. For this we need to make a call to the customer profile API. 
+
+* We’re going to use the `requests` library for this, so go ahead and import it at the top of the source code in the same way that we imported the permissions consent card before. You can find documentation for the requests library at https://docs.python-requests.org.
+
+First we need to build up the address of the API endpoint that we want. The base of the API address varies by the region of the person who is using our skill. Luckily the request object can give us the right base URL for our locale, accessed as `system.api_endpoint`.
+
+* Use a print statement to log the value of `system.api_endpoint` and see what it says.
+
+To this we need to add the API endpoint of the piece of information we want to know. Each piece of information you saw in the permissions menu in ASK has its own specific endpoint. For given namesthis is `/v2/accounts/~current/settings/Profile.givenName`
+
+* Make an `endpoint` variable that glues together the base URL and the API endpoint we want. Declare it after the if statement that checks whether the skill has permission.
+
+<details>
+  <summary>Sample code if you want something to refer to or check against</summary>
+  
+```
+endpoint = system.api_endpoint + "/v2/accounts/~current/settings/Profile.givenName"
+```
+</details>
+
+* Next we need to grab our shiny new access token from `system.api.access_token` (which was updated when the user gave permission to the skill) and assign it to a variable so that we can prove we’re allowed to access the user’s name: `auth = {'Authorization': "Bearer " + system.api_access_token}`.
+
+The format of this is a little odd, but rest assured that it's part of the OAuth 2.0 protocol used by many websites, platforms, and devices. OAuth is used to authenticate programs to each other over the internet without needing to use complex cryptographic methods.
+
+Finally we need to put these two bits of information together to make the request object and send it to the server. This works in exactly the same way as when you open a web page in your browser.
+
+* Place the following after you declared your `auth` variable: `fname = requests.get(endpoint, headers=auth).text.replace("\"", "")` - try and print out the value of fname to see if it worked!
+
+* If you're curious about exactly what `requests` does then you can try `print(requests.get("https://www.google.com"))` and see what happens 
+
+Now that we have the user's name we can use it to make a customised greeting!
+
+* Alter the definition of speech_text at the bottom of LaunchRequest to properly greet the user by name. You can use `format` as we saw above, or you can "add" strings together by using the `+` operator.
+
+
+<details>
+  <summary>Sample code if you want something to refer to or check against</summary>
+  
+```
+speech_text = "Hi {}. Welcome to the High-Low Game. Would you like to play?".format(fname)
+```
+</details>
+
+Test the skill again and it should greet you personally! But all of this was a lot of hard work in order to get hold of a small amount of data. I know the Amazon developer guildelines _say_ that all customer data must be accessed through the API and that you need to ask for user data every time you need it rather than just storing it, but what if we just skipped these steps out? 

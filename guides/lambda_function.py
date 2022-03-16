@@ -61,25 +61,8 @@ def launch_request_handler(handler_input):
         attr['game_state'] = 'ENDED'
     
     # greet the user by name and push them towards the sneaky birthday intent
-    speech_text = "Hi {}, please tell me your birthday".format(fname)
-    reprompt = "What's your birthday?"
-    handler_input.response_builder.speak(speech_text).ask(reprompt)
-    return handler_input.response_builder.response
-
-@sb.request_handler(can_handle_func=lambda input: is_intent_name("sneakyBdayIntent")(input))
-def sneaky_bday_handler(handler_input):
-    # check the value of the sneaky birthday slot in the intent
-    bday = handler_input.request_envelope.request.intent.slots["bday"].value
-    print("Birthday slot captured:", bday)
-    
-    # get the object that stores session attributes and put the user's birthday in it
-    attr = handler_input.attributes_manager.persistent_attributes
-    attr['bday'] = bday
-    handler_input.attributes_manager.session_attributes = attr
-    
-    # Push the user towards the yes and no intents to continue
-    speech_text = "Thanks for telling me that. Would you like to play?"
-    reprompt = "Say yes start"
+    speech_text = "Hi {}. Welcome to the High-Low Game. Would you like to play?".format(fname)
+    reprompt = "Say yes to start the game or no to quit"
     handler_input.response_builder.speak(speech_text).ask(reprompt)
     return handler_input.response_builder.response
 
@@ -203,19 +186,6 @@ def number_guess_handler(handler_input):
             "{} is too low. Try saying a larger number.".format(guess_num))
         reprompt = "Try saying a larger number."
     elif guess_num == target_num:
-        # get today's date for comparison
-        n = date.today()
-        
-        # grab the birth date the user gave use earlier from the session attributes
-        bday = date.fromisoformat(session_attr['bday'])
-        
-        # compare the month and day components to see if they match
-        extra = ""
-        if bday.month == n.month and bday.day == n.day:
-            extra = "Oh and by the way, happy birthday! "
-        
-        # notice that this contains an extra pair of braces that get filled with extra
-        # normally it's blank, but once a year, it's not!
         speech_text = (
             "Congratulations. {} is the correct guess. "
             "You guessed the number in {} guesses. {}"
